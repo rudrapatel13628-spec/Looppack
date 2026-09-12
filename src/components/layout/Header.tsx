@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Package, PlusCircle, Bell, Building2, Truck, Factory } from 'lucide-react';
+import { Package, PlusCircle, Bell, Building2, Truck, Factory, LogIn, LogOut } from 'lucide-react';
 import { NotificationPopover } from './NotificationPopover';
-import type { NotificationItem } from '../../types';
+import type { NotificationItem, UserProfile } from '../../types';
 
 interface HeaderProps {
   userRole: string;
@@ -11,6 +11,9 @@ interface HeaderProps {
   notifications: NotificationItem[];
   onMarkAllAsRead: () => void;
   onSelectNotification: (notif: NotificationItem) => void;
+  currentUser?: UserProfile | null;
+  onOpenSignInModal?: () => void;
+  onSignOut?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,7 +23,10 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateLanding,
   notifications,
   onMarkAllAsRead,
-  onSelectNotification
+  onSelectNotification,
+  currentUser,
+  onOpenSignInModal,
+  onSignOut
 }) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const unreadCount = notifications.filter(n => n.unread).length;
@@ -145,6 +151,42 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             />
           </div>
+
+          {/* User Account / Sign In Controls */}
+          {currentUser ? (
+            <div className="flex items-center space-x-2 pl-1 border-l border-zinc-800">
+              <div className="flex items-center space-x-2 px-2.5 py-1.5 bg-zinc-900 border border-emerald-500/40 rounded-xl text-xs">
+                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-300 font-extrabold flex items-center justify-center text-[11px] border border-emerald-500/30">
+                  {currentUser.fullName ? currentUser.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
+                </div>
+                <div className="hidden lg:block text-left">
+                  <div className="font-extrabold text-zinc-100 text-[11px] leading-tight truncate max-w-[120px]">
+                    {currentUser.fullName}
+                  </div>
+                  <div className="text-[10px] text-zinc-400 truncate max-w-[120px]">
+                    {currentUser.companyName || currentUser.role}
+                  </div>
+                </div>
+                {onSignOut && (
+                  <button
+                    onClick={onSignOut}
+                    className="p-1 text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 rounded-md transition-colors cursor-pointer"
+                    title="Sign Out"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenSignInModal}
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-emerald-300 hover:text-emerald-200 font-bold text-xs rounded-xl border border-emerald-500/40 transition-all cursor-pointer shadow-md shadow-emerald-950/40"
+            >
+              <LogIn className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Sign In</span>
+            </button>
+          )}
 
         </div>
 

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { INITIAL_LISTINGS } from './data/mockListings';
 import { MOCK_DIGITAL_PASSPORTS } from './data/mockPassport';
-import type { Listing, AiMatch, DigitalPassport, GlobalCarbonStats, NotificationItem, CarbonStatsDetail } from './types';
+import type { Listing, AiMatch, DigitalPassport, GlobalCarbonStats, NotificationItem, CarbonStatsDetail, UserProfile } from './types';
 import { calculateExactCarbonSaved } from './utils/carbonCalculator';
-import { getListings, getStats, getCarbonStats, getLogisticsRoutes, getNotifications } from './services/api';
+import { getListings, getStats, getCarbonStats, getLogisticsRoutes, getNotifications, getUsers } from './services/api';
 import { Factory, Building2, Truck, PlusCircle, ShoppingBag, Cpu, ShieldCheck } from 'lucide-react';
 
 // Layout & Navigation Components
@@ -26,12 +26,16 @@ import { DigitalPassportViewer } from './components/passport/DigitalPassportView
 import { DigitalPassportModal } from './components/passport/DigitalPassportModal';
 import { CreateListingModal } from './components/modals/CreateListingModal';
 import { ClaimMaterialModal } from './components/modals/ClaimMaterialModal';
+import { SignInModal } from './components/auth/SignInModal';
 import { Toast } from './components/ui/Toast';
 import type { ToastMessage } from './components/ui/Toast';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('landing');
   const [userRole, setUserRole] = useState<string>('Manufacturer');
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [userDirectory, setUserDirectory] = useState<UserProfile[]>([]);
+  const [isSignInModalOpen, setIsSignInModalOpen] = useState<boolean>(false);
   const [listings, setListings] = useState<Listing[]>([]);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -54,12 +58,13 @@ export function App() {
       setIsLoading(true);
       setApiError(null);
       try {
-        const [fetchedListings, platformStats, carbonDetailData, _fetchedRoutes, fetchedNotifs] = await Promise.all([
+        const [fetchedListings, platformStats, carbonDetailData, _fetchedRoutes, fetchedNotifs, fetchedUsers] = await Promise.all([
           getListings(),
           getStats(),
           getCarbonStats(),
           getLogisticsRoutes(),
-          getNotifications()
+          getNotifications(),
+          getUsers()
         ]);
 
         if (isMounted) {
@@ -79,6 +84,10 @@ export function App() {
 
           if (fetchedNotifs && fetchedNotifs.length > 0) {
             setNotifications(fetchedNotifs);
+          }
+
+          if (fetchedUsers && fetchedUsers.length > 0) {
+            setUserDirectory(fetchedUsers);
           }
         }
       } catch (err) {
@@ -113,6 +122,23 @@ export function App() {
       message,
       type
     });
+  };
+
+  // Auth Handlers
+  const handleSignIn = (user: UserProfile) => {
+    setCurrentUser(user);
+    setUserRole(user.role);
+    setIsSignInModalOpen(false);
+    setActiveTab('dashboard');
+    showToast(
+      'Welcome to LoopPack!',
+      `Signed in as ${user.fullName} (${user.companyName || user.role}). Role view updated.`
+    );
+  };
+
+  const handleSignOut = () => {
+    setCurrentUser(null);
+    showToast('Signed Out', 'You have been signed out of your enterprise session.');
   };
 
   // Interactive Role Switcher Handler
@@ -285,6 +311,9 @@ export function App() {
       <Header
         userRole={userRole}
         setUserRole={handleRoleChange}
+        currentUser={currentUser}
+        onOpenSignInModal={() => setIsSignInModalOpen(true)}
+        onSignOut={handleSignOut}
         onOpenCreateModal={() => setIsCreateModalOpen(true)}
         onNavigateLanding={() => setActiveTab('landing')}
         notifications={notifications}
@@ -481,6 +510,13 @@ export function App() {
       </footer>
 
       {/* MODALS */}
+      <SignInModal
+        isOpen={isSignInModalOpen}
+        onClose={() => setIsSignInModalOpen(false)}
+        onSignIn={handleSignIn}
+        users={userDirectory}
+      />
+
       <DigitalPassportModal
         passport={selectedPassport}
         onClose={() => setSelectedPassport(null)}

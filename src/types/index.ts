@@ -211,3 +211,14 @@ export interface CarbonStatsDetail {
     complianceScore: number;
   }[];
 }
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string;
+  role: 'Manufacturer' | 'Buyer / Recycler' | 'Logistics Fleet' | string;
+  companyId: string;
+  companyName?: string;
+  companyType?: string;
+  createdAt?: string;
+}

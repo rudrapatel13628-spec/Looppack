@@ -7,7 +7,8 @@ import type {
   ClaimTransaction,
   NotificationItem,
   PlatformStats,
-  CarbonStatsDetail
+  CarbonStatsDetail,
+  UserProfile
 } from '../types';
 
 const API_BASE_URL = 'https://aged-guru-corporations-finding.trycloudflare.com/api';
@@ -212,4 +213,20 @@ export async function getStats(): Promise<PlatformStats> {
 
 export async function getCarbonStats(): Promise<CarbonStatsDetail> {
   return fetchJson<CarbonStatsDetail>('/stats/carbon');
+}
+
+// ==========================================
+// 8. USER DIRECTORY API
+// ==========================================
+
+export async function getUsers(params?: { companyId?: string; role?: string }): Promise<UserProfile[]> {
+  const queryParams = new URLSearchParams();
+  if (params?.companyId) queryParams.append('companyId', params.companyId);
+  if (params?.role) queryParams.append('role', params.role);
+  const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
+  return fetchJson<UserProfile[]>(`/users${queryStr}`);
+}
+
+export async function getUser(id: string): Promise<UserProfile> {
+  return fetchJson<UserProfile>(`/users/${encodeURIComponent(id)}`);
 }
