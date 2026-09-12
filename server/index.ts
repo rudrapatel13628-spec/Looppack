@@ -17,6 +17,8 @@ import { logisticsRouter } from './routes/logistics';
 import { claimsRouter } from './routes/claims';
 import { notificationsRouter } from './routes/notifications';
 import { statsRouter } from './routes/stats';
+import { companiesRouter } from './routes/companies';
+import { usersRouter } from './routes/users';
 
 app.use('/api/listings', listingsRouter);
 app.use('/api/matches', matchesRouter);
@@ -25,6 +27,8 @@ app.use('/api/logistics', logisticsRouter);
 app.use('/api/claims', claimsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/stats', statsRouter);
+app.use('/api/companies', companiesRouter);
+app.use('/api/users', usersRouter);
 
 // Health Check Endpoint
 app.get('/api/health', async (_req, res) => {
