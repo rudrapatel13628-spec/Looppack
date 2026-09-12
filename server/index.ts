@@ -9,6 +9,10 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Mount Route Handlers
+import { listingsRouter } from './routes/listings';
+app.use('/api/listings', listingsRouter);
+
 // Health Check Endpoint
 app.get('/api/health', async (_req, res) => {
   try {
