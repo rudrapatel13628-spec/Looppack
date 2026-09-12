@@ -12,9 +12,11 @@ app.use(express.json());
 // Mount Route Handlers
 import { listingsRouter } from './routes/listings';
 import { matchesRouter } from './routes/matches';
+import { passportsRouter } from './routes/passports';
 
 app.use('/api/listings', listingsRouter);
 app.use('/api/matches', matchesRouter);
+app.use('/api/passports', passportsRouter);
 
 // Health Check Endpoint
 app.get('/api/health', async (_req, res) => {
