@@ -147,3 +147,67 @@ export interface NotificationItem {
   targetTab: string;
   type: 'match' | 'route' | 'passport' | 'request' | 'carbon';
 }
+
+export interface ClaimTransaction {
+  id: string;
+  listingId: string;
+  listingTitle?: string;
+  sellerId?: string;
+  sellerName?: string;
+  buyerId: string;
+  buyerName?: string;
+  buyerLocation?: string;
+  claimedQuantity: number;
+  unit: string;
+  logisticsMode: string;
+  co2SavedKg: number;
+  costSavingsInr: number;
+  status: string;
+  claimedAt: string;
+  routeId?: string;
+  logisticsRouteName?: string;
+  passport?: {
+    id: string;
+    serialNumber: string;
+  };
+}
+
+export interface PlatformStats {
+  summary: {
+    totalListings: number;
+    totalSurplusQuantity: number;
+    totalAiMatches: number;
+    acceptedAiMatches: number;
+    totalClaims: number;
+    completedClaims: number;
+    totalPassports: number;
+    activeRoutes: number;
+    totalRoutes: number;
+    totalCompanies: number;
+  };
+  globalCarbonStats: GlobalCarbonStats;
+}
+
+export interface CarbonStatsDetail {
+  totalCo2SavedKg: number;
+  totalCo2AvoidedTons: number;
+  totalCostSavingsInr: number;
+  equivalents: {
+    co2Tons: number;
+    treesPlantedEquivalent: number;
+    carDaysOffRoad: number;
+    landfillVolumeM3: number;
+  };
+  categoryBreakdown: {
+    name: string;
+    value: number;
+    percentage: number;
+    color: string;
+  }[];
+  partnerSavings: {
+    partner: string;
+    exchangeVolumeTons: number;
+    co2ReductionTons: number;
+    complianceScore: number;
+  }[];
+}

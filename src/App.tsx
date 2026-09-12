@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { INITIAL_LISTINGS } from './data/mockListings';
 import { MOCK_DIGITAL_PASSPORTS } from './data/mockPassport';
 import type { Listing, AiMatch, DigitalPassport, GlobalCarbonStats, NotificationItem } from './types';
 import { calculateExactCarbonSaved } from './utils/carbonCalculator';
-import { Factory, Building2, Truck, PlusCircle, ShoppingBag, Cpu, ShieldCheck } from 'lucide-react';
+import { getListings, getStats, getLogisticsRoutes, getNotifications } from './services/api';
+import { Factory, Building2, Truck, PlusCircle, ShoppingBag, Cpu, ShieldCheck, Loader2 } from 'lucide-react';
 
 // Layout & Navigation Components
 import { Header } from './components/layout/Header';
@@ -31,67 +32,75 @@ import type { ToastMessage } from './components/ui/Toast';
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('landing');
   const [userRole, setUserRole] = useState<string>('Manufacturer');
-  const [listings, setListings] = useState<Listing[]>(INITIAL_LISTINGS);
+  const [listings, setListings] = useState<Listing[]>([]);
   const [toast, setToast] = useState<ToastMessage | null>(null);
-
-  // Realistic Notifications State
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 'notif-1',
-      title: 'AI Match Found',
-      message: '94% match found for 2,000 kg Corrugated Cardboard.',
-      time: '2 min ago',
-      unread: true,
-      targetTab: 'aimatchmaker',
-      type: 'match'
-    },
-    {
-      id: 'notif-2',
-      title: 'Route Optimized',
-      message: 'Backhaul route optimized. 38 km distance saved.',
-      time: '18 min ago',
-      unread: true,
-      targetTab: 'logistics',
-      type: 'route'
-    },
-    {
-      id: 'notif-3',
-      title: 'Material Verified',
-      message: 'Digital Material Passport LP-2026-000482 has been verified.',
-      time: '1 hour ago',
-      unread: true,
-      targetTab: 'passports',
-      type: 'passport'
-    },
-    {
-      id: 'notif-4',
-      title: 'New Buyer Request',
-      message: 'GreenMart Retail requested 1,800 kg Corrugated Cardboard.',
-      time: '2 hours ago',
-      unread: true,
-      targetTab: 'marketplace',
-      type: 'request'
-    },
-    {
-      id: 'notif-5',
-      title: 'Carbon Impact Updated',
-      message: 'Estimated carbon savings increased by 1.2 tCO₂e.',
-      time: '3 hours ago',
-      unread: false,
-      targetTab: 'dashboard',
-      type: 'carbon'
-    }
-  ]);
-
-  // Global Carbon Ticker Stats State (INR ₹)
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [stats, setStats] = useState<GlobalCarbonStats>({
-    totalCo2AvoidedTons: 1428.5,
-    landfillWasteDivertedTons: 842.1,
-    circularEconomyRatePercent: 84.6,
-    totalCostSavingsInr: 3428000,
-    activeListingsCount: INITIAL_LISTINGS.length,
-    completedExchangesCount: 124
+    totalCo2AvoidedTons: 0,
+    landfillWasteDivertedTons: 0,
+    circularEconomyRatePercent: 0,
+    totalCostSavingsInr: 0,
+    activeListingsCount: 0,
+    completedExchangesCount: 0
   });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [_apiError, setApiError] = useState<string | null>(null);
+
+  // Load Initial Data from Backend API
+  useEffect(() => {
+    let isMounted = true;
+    const fetchInitialData = async () => {
+      setIsLoading(true);
+      setApiError(null);
+      try {
+        const [fetchedListings, platformStats, _fetchedRoutes, fetchedNotifs] = await Promise.all([
+          getListings(),
+          getStats(),
+          getLogisticsRoutes(),
+          getNotifications()
+        ]);
+
+        if (isMounted) {
+          if (fetchedListings && fetchedListings.length > 0) {
+            setListings(fetchedListings);
+          } else {
+            setListings(INITIAL_LISTINGS);
+          }
+
+          if (platformStats && platformStats.globalCarbonStats) {
+            setStats(platformStats.globalCarbonStats);
+          }
+
+          if (fetchedNotifs && fetchedNotifs.length > 0) {
+            setNotifications(fetchedNotifs);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load initial data from LoopPack Express API:', err);
+        if (isMounted) {
+          setApiError('Connected with fallback mode (Express API offline or unreachable).');
+          setListings(INITIAL_LISTINGS);
+          setStats({
+            totalCo2AvoidedTons: 1428.5,
+            landfillWasteDivertedTons: 842.1,
+            circularEconomyRatePercent: 84.6,
+            totalCostSavingsInr: 3428000,
+            activeListingsCount: INITIAL_LISTINGS.length,
+            completedExchangesCount: 124
+          });
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchInitialData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Modal States
   const [selectedClaimListing, setSelectedClaimListing] = useState<Listing | null>(null);
@@ -132,18 +141,31 @@ export function App() {
     setActiveTab(notif.targetTab);
   };
 
-  // 1. Refresh Data Simulation
-  const handleRefreshData = () => {
-    setStats((prev) => ({
-      ...prev,
-      totalCo2AvoidedTons: Math.round((prev.totalCo2AvoidedTons + 14.2) * 10) / 10,
-      landfillWasteDivertedTons: Math.round((prev.landfillWasteDivertedTons + 8.5) * 10) / 10,
-      totalCostSavingsInr: prev.totalCostSavingsInr + 34000
-    }));
-    showToast(
-      'Live LoopNet Recalculated',
-      'Ingested 3 new regional factory surplus streams from Pune & Bengaluru hubs.'
-    );
+  // 1. Refresh Data Handler connected to Backend API
+  const handleRefreshData = async () => {
+    try {
+      const [freshListings, platformStats] = await Promise.all([
+        getListings(),
+        getStats()
+      ]);
+      if (freshListings && freshListings.length > 0) setListings(freshListings);
+      if (platformStats && platformStats.globalCarbonStats) setStats(platformStats.globalCarbonStats);
+      showToast(
+        'Live LoopNet Recalculated',
+        'Ingested real-time factory surplus streams from LoopPack Express Backend.'
+      );
+    } catch {
+      setStats((prev) => ({
+        ...prev,
+        totalCo2AvoidedTons: Math.round((prev.totalCo2AvoidedTons + 14.2) * 10) / 10,
+        landfillWasteDivertedTons: Math.round((prev.landfillWasteDivertedTons + 8.5) * 10) / 10,
+        totalCostSavingsInr: prev.totalCostSavingsInr + 34000
+      }));
+      showToast(
+        'Live LoopNet Recalculated',
+        'Simulated 3 new regional factory surplus streams.'
+      );
+    }
   };
 
   // 2. Claim Listing Handler
