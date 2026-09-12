@@ -1,0 +1,314 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum UserRole {
+  MANUFACTURER
+  BUYER_RECYCLER
+  LOGISTICS_FLEET
+}
+
+enum CompanyType {
+  MANUFACTURER
+  RETAILER
+  RECYCLER
+  DISTRIBUTION_HUB
+  LOGISTICS_FLEET
+}
+
+enum MaterialCategory {
+  CARDBOARD
+  HDPE_PLASTICS
+  WOODEN_PALLETS
+  STEEL_DRUMS
+  BIO_FOAM
+}
+
+enum MaterialGrade {
+  GRADE_A_LIKE_NEW
+  CLEAN_RECYCLABLE
+  REFURBISHED
+  INDUSTRIAL_BULK
+}
+
+enum RecyclabilityRating {
+  RECYCLABLE_100
+  COMPOSTABLE
+  REUSABLE_CIRCULAR
+}
+
+enum MatchStatus {
+  PENDING
+  ACCEPTED
+  DISPATCHED
+  NEGOTIATING
+}
+
+enum ClaimStatus {
+  PENDING
+  COMPLETED
+  DISPATCHED
+  CANCELLED
+}
+
+enum LogisticsMode {
+  SHARED_BACKHAUL_LOOP
+  DIRECT_EV_COURIER
+  RAIL_FREIGHT_LOOP
+}
+
+enum RouteStatus {
+  OPTIMIZED_SCHEDULED
+  IN_TRANSIT
+  COMPLETED
+}
+
+enum NodeType {
+  PICKUP_SUPPLIER
+  PROCESSING_HUB
+  DROPOFF_BUYER
+}
+
+enum NotificationType {
+  MATCH
+  ROUTE
+  PASSPORT
+  REQUEST
+  CARBON
+}
+
+// ==========================================
+// MODELS
+// ==========================================
+
+/// Represents an organization/business entity (e.g. Tata AutoComp, Bosch India)
+model Company {
+  id              String             @id @default(uuid())
+  name            String
+  type            CompanyType        @default(MANUFACTURER)
+  rating          Float              @default(5.0)
+  location        String
+  cityState       String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  users           User[]
+  listings        Listing[]          @relation("SellerListings")
+  claims          ClaimTransaction[] @relation("BuyerClaims")
+  buyerMatches    AiMatch[]          @relation("BuyerMatches")
+  carrierRoutes   LogisticsRoute[]   @relation("CarrierRoutes")
+  notifications   Notification[]
+
+  @@map("companies")
+}
+
+/// Represents individual user accounts belonging to a company with role access
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  passwordHash    String
+  fullName        String
+  role            UserRole       @default(MANUFACTURER)
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  notifications   Notification[]
+
+  @@map("users")
+}
+
+/// B2B Surplus Packaging Material Listing published by Manufacturers
+model Listing {
+  id                  String             @id @default(uuid())
+  title               String
+  category            MaterialCategory
+  quantity            Float
+  unit                String
+  weightPerUnitKg     Float
+  location            String
+  cityState           String
+  distanceKm          Float
+  pricePerUnitInr     Float
+  condition           MaterialGrade
+  sellerId            String
+  seller              Company            @relation("SellerListings", fields: [sellerId], references: [id])
+  image               String
+  verified            Boolean            @default(true)
+  description         String             @db.Text
+  compositionPercent  String
+  dimensions          String?
+  loadCapacityKg      Float?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  passport            DigitalPassport?
+  aiMatches           AiMatch[]
+  claims              ClaimTransaction[]
+
+  @@map("listings")
+}
+
+/// Exchange transaction record created when a buyer claims surplus material
+model ClaimTransaction {
+  id               String         @id @default(uuid())
+  listingId        String
+  listing          Listing        @relation(fields: [listingId], references: [id])
+  buyerId          String
+  buyer            Company        @relation("BuyerClaims", fields: [buyerId], references: [id])
+  claimedQuantity  Float
+  unit             String
+  logisticsMode    LogisticsMode  @default(SHARED_BACKHAUL_LOOP)
+  co2SavedKg       Float
+  costSavingsInr   Float
+  status           ClaimStatus    @default(COMPLETED)
+  claimedAt        DateTime       @default(now())
+
+  routeId          String?
+  logisticsRoute   LogisticsRoute? @relation(fields: [routeId], references: [id])
+
+  @@map("claim_transactions")
+}
+
+/// AI-generated buyer match recommendation proposals with multi-factor breakdown
+model AiMatch {
+  id                         String        @id @default(uuid())
+  listingId                  String
+  listing                    Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerId                    String?
+  buyer                      Company?      @relation("BuyerMatches", fields: [buyerId], references: [id])
+  buyerName                  String
+  buyerType                  String
+  distanceKm                 Float
+  matchScorePercent          Float
+  materialCompatibilityScore Float
+  carbonBenefitScore         Float
+  availabilityTimeScore      Float
+  quantityFitScore           Float
+  priceScore                 Float
+  distanceScore              Float
+  co2SavingsTotalKg          Float
+  costSavingsTotalInr        Float
+  suggestedPricePerUnitInr   Float
+  status                     MatchStatus   @default(PENDING)
+  logisticsMode              LogisticsMode @default(SHARED_BACKHAUL_LOOP)
+  matchReasoning             String[]
+  createdAt                  DateTime      @default(now())
+
+  @@map("ai_matches")
+}
+
+/// ISO-14040 Digital Material Passport bound to a specific packaging listing
+model DigitalPassport {
+  id                     String              @id @default(uuid())
+  serialNumber           String              @unique
+  listingId              String              @unique
+  listing                Listing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  materialName           String
+  quantity               Float
+  unit                   String
+  originCompany          String
+  manufacturingLocation  String
+  rawMaterialSource      String
+  recycledContentPercent Float
+  virginContentPercent   Float
+  carbonFootprintKgPerKg Float
+  netCo2SavedKg          Float
+  aiMatchScorePercent    Float?
+  recyclabilityRating    RecyclabilityRating @default(RECYCLABLE_100)
+  certifications         String[]
+  qrData                 String
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  movementHistory        PassportAuditLog[]
+
+  @@map("digital_passports")
+}
+
+/// Cryptographic audit events tracking the movement history of a passport
+model PassportAuditLog {
+  id               String          @id @default(uuid())
+  passportId       String
+  passport         DigitalPassport @relation(fields: [passportId], references: [id], onDelete: Cascade)
+  timestamp        DateTime        @default(now())
+  stage            String
+  actor            String
+  location         String
+  verificationHash String
+  createdAt        DateTime        @default(now())
+
+  @@map("passport_audit_logs")
+}
+
+/// Commercial EV Fleet backhaul route loop optimizing transport Scope 3 emissions
+model LogisticsRoute {
+  id                         String             @id @default(uuid())
+  routeName                  String
+  carrierId                  String?
+  carrier                    Company?           @relation("CarrierRoutes", fields: [carrierId], references: [id])
+  carrierName                String
+  vehicleType                String
+  originHub                  String
+  destinationHub             String
+  totalDistanceKm            Float
+  linearRouteDistanceKm      Float
+  distanceSavedKm            Float
+  linearEmissionsKg          Float
+  loopEmissionsKg            Float
+  emissionsSavedKg           Float
+  estimatedCostSavedInr      Float
+  backhaulOpportunityPercent Float
+  vehicleCapacityPercent     Float
+  status                     RouteStatus        @default(OPTIMIZED_SCHEDULED)
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
+
+  nodes                      RouteNode[]
+  claims                     ClaimTransaction[]
+
+  @@map("logistics_routes")
+}
+
+/// Waypoint node along an EV backhaul route (Supplier Pickup, Processing Hub, Buyer Dropoff)
+model RouteNode {
+  id             String         @id @default(uuid())
+  routeId        String
+  route          LogisticsRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  name           String
+  type           NodeType
+  lat            Float
+  lng            Float
+  address        String
+  demandQuantity String
+  sequenceOrder  Int            @default(0)
+
+  @@map("route_nodes")
+}
+
+/// Real-time alert notifications sent to users/companies
+model Notification {
+  id         String           @id @default(uuid())
+  userId     String?
+  user       User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId  String?
+  company    Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title      String
+  message    String
+  unread     Boolean          @default(true)
+  targetTab  String
+  type       NotificationType
+  createdAt  DateTime         @default(now())
+
+  @@map("notifications")
+}
