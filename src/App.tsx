@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { INITIAL_LISTINGS } from './data/mockListings';
 import { MOCK_DIGITAL_PASSPORTS } from './data/mockPassport';
-import type { Listing, AiMatch, DigitalPassport, GlobalCarbonStats, NotificationItem } from './types';
+import type { Listing, AiMatch, DigitalPassport, GlobalCarbonStats, NotificationItem, CarbonStatsDetail } from './types';
 import { calculateExactCarbonSaved } from './utils/carbonCalculator';
-import { getListings, getStats, getLogisticsRoutes, getNotifications } from './services/api';
-import { Factory, Building2, Truck, PlusCircle, ShoppingBag, Cpu, ShieldCheck, Loader2 } from 'lucide-react';
+import { getListings, getStats, getCarbonStats, getLogisticsRoutes, getNotifications } from './services/api';
+import { Factory, Building2, Truck, PlusCircle, ShoppingBag, Cpu, ShieldCheck } from 'lucide-react';
 
 // Layout & Navigation Components
 import { Header } from './components/layout/Header';
@@ -36,14 +36,15 @@ export function App() {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [stats, setStats] = useState<GlobalCarbonStats>({
-    totalCo2AvoidedTons: 0,
-    landfillWasteDivertedTons: 0,
-    circularEconomyRatePercent: 0,
-    totalCostSavingsInr: 0,
-    activeListingsCount: 0,
-    completedExchangesCount: 0
+    totalCo2AvoidedTons: 1428.5,
+    landfillWasteDivertedTons: 842.0,
+    circularEconomyRatePercent: 84.6,
+    totalCostSavingsInr: 3428000,
+    activeListingsCount: 6,
+    completedExchangesCount: 124
   });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [carbonDetail, setCarbonDetail] = useState<CarbonStatsDetail | null>(null);
+  const [_isLoading, setIsLoading] = useState<boolean>(true);
   const [_apiError, setApiError] = useState<string | null>(null);
 
   // Load Initial Data from Backend API
@@ -53,9 +54,10 @@ export function App() {
       setIsLoading(true);
       setApiError(null);
       try {
-        const [fetchedListings, platformStats, _fetchedRoutes, fetchedNotifs] = await Promise.all([
+        const [fetchedListings, platformStats, carbonDetailData, _fetchedRoutes, fetchedNotifs] = await Promise.all([
           getListings(),
           getStats(),
+          getCarbonStats(),
           getLogisticsRoutes(),
           getNotifications()
         ]);
@@ -71,6 +73,10 @@ export function App() {
             setStats(platformStats.globalCarbonStats);
           }
 
+          if (carbonDetailData) {
+            setCarbonDetail(carbonDetailData);
+          }
+
           if (fetchedNotifs && fetchedNotifs.length > 0) {
             setNotifications(fetchedNotifs);
           }
@@ -80,14 +86,6 @@ export function App() {
         if (isMounted) {
           setApiError('Connected with fallback mode (Express API offline or unreachable).');
           setListings(INITIAL_LISTINGS);
-          setStats({
-            totalCo2AvoidedTons: 1428.5,
-            landfillWasteDivertedTons: 842.1,
-            circularEconomyRatePercent: 84.6,
-            totalCostSavingsInr: 3428000,
-            activeListingsCount: INITIAL_LISTINGS.length,
-            completedExchangesCount: 124
-          });
         }
       } finally {
         if (isMounted) {
@@ -397,7 +395,10 @@ export function App() {
                 <CarbonTrendsChart />
               </div>
               <div>
-                <MaterialBreakdownChart />
+                <MaterialBreakdownChart
+                  categoryBreakdown={carbonDetail?.categoryBreakdown}
+                  totalDivertedTons={stats.landfillWasteDivertedTons}
+                />
               </div>
             </div>
 

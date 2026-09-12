@@ -1,9 +1,21 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { MATERIAL_BREAKDOWN } from '../../data/mockAnalytics';
+import type { MaterialCategoryBreakdown } from '../../data/mockAnalytics';
 import { PieChart as PieIcon, Layers } from 'lucide-react';
 
-export const MaterialBreakdownChart: React.FC = () => {
+interface MaterialBreakdownChartProps {
+  categoryBreakdown?: MaterialCategoryBreakdown[];
+  totalDivertedTons?: number;
+}
+
+export const MaterialBreakdownChart: React.FC<MaterialBreakdownChartProps> = ({
+  categoryBreakdown,
+  totalDivertedTons
+}) => {
+  const data = categoryBreakdown && categoryBreakdown.length > 0 ? categoryBreakdown : MATERIAL_BREAKDOWN;
+  const totalTons = totalDivertedTons !== undefined ? totalDivertedTons : 842;
+
   return (
     <div className="glass-panel p-5 rounded-2xl border border-emerald-900/50 flex flex-col h-full">
       <div className="mb-4">
@@ -21,7 +33,7 @@ export const MaterialBreakdownChart: React.FC = () => {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={MATERIAL_BREAKDOWN}
+                data={data}
                 cx="50%"
                 cy="50%"
                 innerRadius={50}
@@ -29,7 +41,7 @@ export const MaterialBreakdownChart: React.FC = () => {
                 paddingAngle={4}
                 dataKey="value"
               >
-                {MATERIAL_BREAKDOWN.map((entry, index) => (
+                {data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} stroke="#041a13" strokeWidth={2} />
                 ))}
               </Pie>
@@ -47,7 +59,7 @@ export const MaterialBreakdownChart: React.FC = () => {
         </div>
 
         <div className="w-full sm:w-1/2 space-y-2 text-xs">
-          {MATERIAL_BREAKDOWN.map((item) => (
+          {data.map((item) => (
             <div key={item.name} className="flex items-center justify-between p-2 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
               <div className="flex items-center space-x-2">
                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></span>
@@ -65,9 +77,9 @@ export const MaterialBreakdownChart: React.FC = () => {
       <div className="mt-4 pt-3 border-t border-emerald-950 flex items-center justify-between text-xs text-zinc-400">
         <span className="flex items-center space-x-1">
           <Layers className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Top Volume: <b>Cardboard & Paper (41%)</b></span>
+          <span>Top Volume: <b>{data[0]?.name || 'Cardboard'} ({data[0]?.percentage || 41}%)</b></span>
         </span>
-        <span className="text-emerald-400 font-semibold">1,428 Tons Diverted Total</span>
+        <span className="text-emerald-400 font-semibold">{totalTons.toLocaleString()} Tons Diverted Total</span>
       </div>
     </div>
   );
