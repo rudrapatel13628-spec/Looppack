@@ -15,12 +15,14 @@ import { matchesRouter } from './routes/matches';
 import { passportsRouter } from './routes/passports';
 import { logisticsRouter } from './routes/logistics';
 import { claimsRouter } from './routes/claims';
+import { notificationsRouter } from './routes/notifications';
 
 app.use('/api/listings', listingsRouter);
 app.use('/api/matches', matchesRouter);
 app.use('/api/passports', passportsRouter);
 app.use('/api/logistics', logisticsRouter);
 app.use('/api/claims', claimsRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // Health Check Endpoint
 app.get('/api/health', async (_req, res) => {
