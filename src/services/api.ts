@@ -10,7 +10,7 @@ import type {
   CarbonStatsDetail
 } from '../types';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://aged-guru-corporations-finding.trycloudflare.com/api';
 
 /**
  * Generic helper for executing HTTP fetch requests to the Express backend API.
