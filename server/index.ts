@@ -13,10 +13,14 @@ app.use(express.json());
 import { listingsRouter } from './routes/listings';
 import { matchesRouter } from './routes/matches';
 import { passportsRouter } from './routes/passports';
+import { logisticsRouter } from './routes/logistics';
+import { claimsRouter } from './routes/claims';
 
 app.use('/api/listings', listingsRouter);
 app.use('/api/matches', matchesRouter);
 app.use('/api/passports', passportsRouter);
+app.use('/api/logistics', logisticsRouter);
+app.use('/api/claims', claimsRouter);
 
 // Health Check Endpoint
 app.get('/api/health', async (_req, res) => {
