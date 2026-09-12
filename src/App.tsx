@@ -452,9 +452,8 @@ export function App() {
 
       {/* Footer */}
       <footer className="border-t border-emerald-950 py-6 px-4 text-center text-xs text-zinc-500 bg-zinc-950">
-        <p className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+        <p className="max-w-7xl mx-auto flex items-center justify-center">
           <span>LoopPack © 2026 — Circular Packaging & Materials Exchange Platform</span>
-          <span className="text-emerald-400 font-semibold">Phase 2 Interactive Hackathon Prototype</span>
         </p>
       </footer>
 

@@ -46,9 +46,6 @@ export const Header: React.FC<HeaderProps> = ({
               <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-400 bg-clip-text text-transparent">
                 LoopPack
               </h1>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                PROTOTYPE PHASE 2
-              </span>
             </div>
             <p className="text-[11px] text-zinc-400 font-medium hidden sm:block">
               B2B Circular Packaging Exchange & Carbon-Aware Supply Chain
